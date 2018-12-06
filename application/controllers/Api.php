@@ -10,6 +10,7 @@ class Api extends CI_Controller {
 		$this->load->model('mod_product');
 		$this->load->model('mod_transaction');
 		$this->load->model('mod_notification');
+		$this->load->model('mod_review');
 		header('Content-type:JSON');
 	}
 
@@ -24,6 +25,8 @@ class Api extends CI_Controller {
 			$json = json_decode($login);
 			if($json == null){
 				$severity = "warning";
+				$username = null;
+				$password = null;
 				$message = "Tidak ada data dikirim ke server";
 				$content = array("user" => array());
 			}else{
@@ -144,13 +147,17 @@ class Api extends CI_Controller {
 			$key => $val 
 		));
 		if(sizeof($data) > 0){
+			$shop = $this->mod_shop->shop_detail(array("id_user" => $data[0]->id));
+			if(sizeof($shop) > 0){
+				$shop[0]->user = $data;
+			}
 			$severity = "success";
-			$message = "user detail";
-			$content = array("user" => $data);
+			$message = "Load user berhasil";
+			$content = array("user" => $data, "shop" => $shop);
 		}else{
-			$severity = "success";
+			$severity = "warning";
 			$message = "No data";
-			$content = array("user" => array());
+			$content = array("user" => array(), "shop" => array());
 		}
 		$response = array(
 			"severity" => $severity,
@@ -524,13 +531,19 @@ class Api extends CI_Controller {
 			$key => $val,
 			"status" => $status 
 		));
+		
 		if(sizeof($data) > 0){
-			$shop = $this->mod_shop->shop_detail(array("id" => $data[0]->id_shop));
-			$user = $this->mod_user->user_detail(array("id" => $shop[0]->id_user));
-			$products = $this->mod_transaction->transaction_detail_list($data[0]->id);
-			$data[0]->shop = $shop[0];
-			$data[0]->shop->user = $user[0];
-			$data[0]->product = $products;
+			for($z=0;$z<sizeof($data);$z++){
+				$shop = $this->mod_shop->shop_detail(array("id" => $data[$z]->id_shop));
+				$user_buyer = $this->mod_user->user_detail(array("id" => $data[$z]->id_user));
+				$user = $this->mod_user->user_detail(array("id" => $shop[0]->id_user));
+				$products = $this->mod_transaction->transaction_detail_list($data[$z]->id);
+				$data[$z]->shop = $shop[0];
+				$data[$z]->buyer = $user_buyer[0];
+				$data[$z]->shop->user = $user[0];
+				$data[$z]->product = $products;
+			}
+			
 			$severity = "success";
 			$message = "Product detail";
 			$content = array("transaction" => $data);
@@ -565,6 +578,52 @@ class Api extends CI_Controller {
 			$severity = "danger";
 			$message = "Tidak ada data dikirim ke server";
 			$content = array("transaction" => array());
+		}
+		$response = array(
+			"severity" => $severity,
+			"message" => $message,
+			"content" => $content
+		);
+		echo json_encode($response,JSON_PRETTY_PRINT);
+	}
+
+
+	public function transaction_upload_bukti(){ 
+		if($this->input->post('id') == null && $this->input->post('image') == null  && $this->input->post('status') == null){
+			$bukti = file_get_contents('php://input');
+			$json = json_decode($bukti);
+			if($json == null){
+				$severity = "warning";
+				$message = "Tidak ada data dikirim ke server";
+				$content = array("transaction" => array());
+			}else{
+				$id = $json->id;
+				$image = $json->image;
+				$status = $json->status;
+			}
+		}else{
+			$id = $this->input->post('id');
+			$image = $this->input->post('image');
+			$status = $this->input->post('status');
+		}
+		if($id != null && $image != null && $status != null ){
+			$transaction_update = $this->mod_transaction->transaction_update_status($id,array(
+				"image" => $image,
+				"status" => $status
+			));
+			if($transaction_update > 0){
+				$severity = "success";
+				$message = "Update status transaksi berhasil";
+				$content = array("transaction" => array());
+			}else{
+				$severity = "warning";
+				$message = "Update status transaksi gagal";
+				$content = array("transaction" => array());
+			}
+		}else{
+			$severity = "warning";
+			$message = "Tidak ada data dikirim ke server";
+			$content = array("user" => array(), "shop" => array());
 		}
 		$response = array(
 			"severity" => $severity,
@@ -611,12 +670,83 @@ class Api extends CI_Controller {
 				)
 			);
 			if($shop_insert > 0){
-				$severity = "success";
-				$message = "Mendaftarkan toko berhasil";
-				$content = array();
+				$data = $this->mod_user->user_detail(array(
+					"id" => $id_user 
+				));
+				if(sizeof($data) > 0){
+					$shop = $this->mod_shop->shop_detail(array("id_user" => $data[0]->id));
+					if(sizeof($shop) > 0){
+						$shop[0]->user = $data;
+					}
+					$severity = "success";
+					$message = "Simpan data berhasil";
+					$content = array("user" => $data, "shop" => $shop);
+				}
 			}else{
 				$severity = "warning";
 				$message = "Mendaftarkan toko gagal. Silakan coba lagi";
+				$content = array("user" => array(), "shop" => array());
+			}
+		}else{
+			$severity = "danger";
+			$message = "Tidak ada data dikirim ke server";
+			$content = array("user" => array(), "shop" => array());
+		}
+		$response = array(
+			"severity" => $severity,
+			"message" => $message,
+			"content" => $content
+		);
+		echo json_encode($response,JSON_PRETTY_PRINT);
+	}
+	// ------------------------END OF SHOP ------------------------------------
+
+
+	// ------------------------ SHOP ------------------------------------
+	public function review_insert(){
+		if($this->input->post('id_product') == null && 
+		$this->input->post('id_user') == null && 
+		$this->input->post('rating') == null && 
+		$this->input->post('review') == null){
+			$rev = file_get_contents('php://input');
+			$json = json_decode($rev);
+			if($json == null){
+				$severity = "warning";
+				$message = "Tidak ada data dikirim ke server";
+				$content = array();
+				$id_product = null;
+				$id_user = null;
+				$rating = null;
+				$review = null;
+			}else{
+				$id_product = $json->id_product;
+				$id_user = $json->id_user;
+				$rating = $json->rating;
+				$review = $json->review;
+			}
+		}else{
+			$id_product = $this->input->post('id_product');
+			$id_user = $this->input->post('id_user');
+			$rating = $this->input->post('rating');
+			$review = $this->input->post('review');
+		}
+
+		if($id_product != null && $id_user != null && $rating != null && $review != null){
+			$review_insert = $this->mod_review->review_insert(
+				array(
+					"id_product" => $id_product,
+					"id_user" => $id_user,
+					"rating" => $rating,
+					"review" => $review
+				)
+			);
+			if($review_insert > 0){
+				$severity = "success";
+				$message = "Simpan data review berhasil";
+				$content = array();
+			}else{
+				$severity = "warning";
+				$message = "Simpan data review gagal. Silakan coba lagi";
 				$content = array();
 			}
 		}else{
@@ -631,6 +761,6 @@ class Api extends CI_Controller {
 		);
 		echo json_encode($response,JSON_PRETTY_PRINT);
 	}
-	// ------------------------END OF SHOP ------------------------------------
+	// ------------------------END OF REVIEW ------------------------------------
 	
 }
