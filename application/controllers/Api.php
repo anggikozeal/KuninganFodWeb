@@ -702,7 +702,7 @@ class Api extends CI_Controller {
 	// ------------------------END OF SHOP ------------------------------------
 
 
-	// ------------------------ SHOP ------------------------------------
+	// ------------------------ REVIEW ------------------------------------
 	public function review_insert(){
 		if($this->input->post('id_product') == null && 
 		$this->input->post('id_user') == null && 
@@ -753,6 +753,34 @@ class Api extends CI_Controller {
 			$severity = "danger";
 			$message = "Tidak ada data dikirim ke server";
 			$content = array();
+		}
+		$response = array(
+			"severity" => $severity,
+			"message" => $message,
+			"content" => $content
+		);
+		echo json_encode($response,JSON_PRETTY_PRINT);
+	}
+
+	public function review($key, $val){
+		$data = $this->mod_review->review(array(
+			$key => $val,
+		));
+		
+		if(sizeof($data) > 0){
+			for($z=0;$z<sizeof($data);$z++){
+				$user = $this->mod_user->user_detail(array("id" => $data[$z]->id_user));
+				$product = $this->mod_product->product_detail(array("id" => $data[$z]->id_product));
+				$data[$z]->user = $user[0];
+				$data[$z]->product = $product[0];
+			}
+			$severity = "success";
+			$message = "Review";
+			$content = array("review" => $data);
+		}else{
+			$severity = "success";
+			$message = "No data";
+			$content = array("review" => array());
 		}
 		$response = array(
 			"severity" => $severity,

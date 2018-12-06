@@ -12,6 +12,8 @@ class Mod_review extends CI_Model {
         $this->db->select("*");
         $this->db->from("review");
         $this->db->where($where);
+        $this->db->order_by("id","desc");
+        $this->db->limit(30);
         $query = $this->db->get();
         return $query->result();
     }
