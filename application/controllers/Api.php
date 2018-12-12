@@ -721,7 +721,26 @@ class Api extends CI_Controller {
 				"id" => $id_transaction,
 				"status" => $new_status 
 			));
-			
+
+			if($new_status == "ON_FINISH"){
+				$detail = $this->mod_transaction->transaction_detail_list($id_transaction);
+				$total = 0;
+				for($a=0;$a<sizeof($detail);$a++){
+					if($detail[$a]->discount > 0){
+						$total = $total + (($detail[$a]->price - ($detail[$a]->price * ($detail[$a]->discount / 100) )) * $detail[$a]->qty);
+					}else{
+						$total = $total + ($detail[$a]->price * $detail[$a]->qty);
+					}
+				}
+				$insert_transac_history = $this->mod_transaction->transaction_history_insert(
+					array(
+						"id_transaction" => $id_transaction,
+						"total" => $total,
+						"datetime" => date("Y-m-d H:i:s")
+					)
+				);
+			}
+
 			if(sizeof($recent_upt) > 0){
 				$shop = $this->mod_shop->shop_detail(array("id" => $recent_upt[0]->id_shop));
 				$user_buyer = $this->mod_user->user_detail(array("id" => $recent_upt[0]->id_user));
@@ -754,18 +773,6 @@ class Api extends CI_Controller {
 			
 				
 			}
-			//-------------------------------------------------------------
-			//
-			// $notification_insert = $this->mod_notification->notification_insert(
-			// 	array(
-			// 		"id_user" => $id_user,
-			// 		"title" => "Transaksi pembelian ",
-			// 		"message" => "Anda baru saja menambahkan produk ke keranjang",
-			// 		"datetime" => date("Y-m-d H:i:s")
-			// 	)
-			// );
-
-			//
 			if($transaction_update > 0){
 				$severity = "success";
 				$message = "Update status transaksi berhasil";

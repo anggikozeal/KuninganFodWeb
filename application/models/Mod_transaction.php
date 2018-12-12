@@ -63,4 +63,10 @@ class Mod_transaction extends CI_Model {
         $query = $this->db->query("SELECT DISTINCT(id_product) as idp , (select sum(qty) as qty from transaction_detail where id_product=idp) as jumlah_beli  FROM transaction_detail");
         return $query->result();
     }
+
+
+    function transaction_history_insert($data){
+        $this->db->insert('transaction_history',$data);
+        return $this->db->affected_rows();
+    }
 }
