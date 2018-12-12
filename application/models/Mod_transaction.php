@@ -58,4 +58,9 @@ class Mod_transaction extends CI_Model {
         return $this->db->affected_rows();
     }
 
+    //SELECT DISTINCT(id_product) as idp , (select sum(qty) as qty from transaction_detail where id_product=idp) as jumlah_beli   FROM transaction_detail
+    function transaction_hot(){
+        $query = $this->db->query("SELECT DISTINCT(id_product) as idp , (select sum(qty) as qty from transaction_detail where id_product=idp) as jumlah_beli  FROM transaction_detail");
+        return $query->result();
+    }
 }

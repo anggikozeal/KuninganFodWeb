@@ -173,6 +173,23 @@ class Api extends CI_Controller {
 	// ------------------------ PRODUCT ------------------------------------
 	public function product_latest($limit){
 		$data = $this->mod_product->product_latest($limit);
+		$hot = $this->mod_transaction->transaction_hot();
+		$product_hot = array();
+		if(sizeof($hot) > 0){
+			for($c = 0;$c<sizeof($hot);$c++){
+				$product_ctr = $this->mod_product->product_detail(array(
+					"id" => $hot[$c]->idp
+				));
+				if(sizeof($product_ctr) > 0){
+					$shop = $this->mod_shop->shop_detail(array("id" => $product_ctr[0]->id_shop));
+					$user = $this->mod_user->user_detail(array("id" => $shop[0]->id_user));
+					$product_ctr[0]->shop = $shop[0];
+					$product_ctr[0]->shop->user = $user[0];
+					$product_hot[$c] = $product_ctr[0];
+				}
+			}
+		}
+		//----------------
 		if(sizeof($data) > 0){
 			for($x=0;$x<sizeof($data);$x++){
 				$shop = $this->mod_shop->shop_detail(array("id" => $data[$x]->id_shop));
@@ -182,10 +199,65 @@ class Api extends CI_Controller {
 			}
 			$severity = "success";
 			$message = "Latest product";
-			$content = array("product" => $data);
+			$content = array("product" => $data,"product_hot" => $product_hot);
 		}else{
 			$severity = "success";
 			$message = "No data";
+			$content = array("product" => array());
+		}
+		$response = array(
+			"severity" => $severity,
+			"message" => $message,
+			"content" => $content
+		);
+		echo json_encode($response,JSON_PRETTY_PRINT);
+	}
+
+	public function product_search($val){
+		$data = $this->mod_product->product_search($val);
+		if(sizeof($data) > 0){
+			for($x=0;$x<sizeof($data);$x++){
+				$shop = $this->mod_shop->shop_detail(array("id" => $data[$x]->id_shop));
+				$user = $this->mod_user->user_detail(array("id" => $shop[0]->id_user));
+				$data[$x]->shop = $shop[0];
+				$data[$x]->shop->user = $user[0];
+			}
+			$severity = "success";
+			$message = "Search result of product";
+			$content = array("product" => $data);
+		}else{
+			$severity = "success";
+			$message = "Search result of ";
+			$content = array("product" => array());
+		}
+		$response = array(
+			"severity" => $severity,
+			"message" => $message,
+			"content" => $content
+		);
+		echo json_encode($response,JSON_PRETTY_PRINT);
+	}
+
+
+	public function product_by_shop($id_shop, $val){
+		if($val == "system_all"){
+			$data = $this->mod_product->product_by_shop_no_val($id_shop);
+		}else{
+			$data = $this->mod_product->product_by_shop_with_val($id_shop,$val);
+		}
+		if(sizeof($data) > 0){
+			for($x=0;$x<sizeof($data);$x++){
+				$shop = $this->mod_shop->shop_detail(array("id" => $data[$x]->id_shop));
+				$user = $this->mod_user->user_detail(array("id" => $shop[0]->id_user));
+				$data[$x]->shop = $shop[0];
+				$data[$x]->shop->user = $user[0];
+			}
+			$severity = "success";
+			$message = "Search result of product";
+			$content = array("product" => $data);
+		}else{
+			$severity = "success";
+			$message = "Search result of ";
 			$content = array("product" => array());
 		}
 		$response = array(
@@ -308,6 +380,83 @@ class Api extends CI_Controller {
 		);
 		echo json_encode($response,JSON_PRETTY_PRINT);
 	}
+
+	public function product_update($id){
+		if($this->input->post('name') == null && 
+		$this->input->post('category') == null &&
+		$this->input->post('status') == null && 
+		$this->input->post('price') == null &&
+		$this->input->post('discount') == null && 
+		$this->input->post('description') == null &&
+		$this->input->post('image') == null
+		){
+			$inp = file_get_contents('php://input');
+			$json = json_decode($inp);
+			if($json == null){
+				$severity = "warning";
+				$message = "Tidak ada data dikirim ke server";
+				$content = array();
+				$name = null;
+				$category = null;
+				$status = null;
+				$price = null;
+				$discount = null;
+				$description = null;
+				$image = null;
+			}else{
+				$name = $json->name;
+				$category = $json->category;
+				$status = $json->status;
+				$price = $json->price;
+				$discount = $json->discount;
+				$description = $json->description;
+				$image = $json->image;
+			}
+		}else{
+			$name = $this->input->post('name');
+			$category = $this->input->post('category');
+			$status = $this->input->post('status');
+			$price = $this->input->post('price');
+			$discount = $this->input->post('discount');
+			$description = $this->input->post('description');
+			$image = $this->input->post('image');
+		}
+
+		if($id != null && $name != null && $category != null && 
+		$status != null && $price != null && $discount != null && 
+		$description != null && $image != null){
+			$product_update = $this->mod_product->product_update($id,
+				array(
+					"name" => $name,
+					"category" => $category,
+					"status" => $status,
+					"price" => $price,
+					"discount" => $discount,
+					"description" => $description,
+					"image" => $image
+				)
+			);
+			if($product_update > 0){
+				$severity = "success";
+				$message = "Update product berhasil";
+				$content = array();
+			}else{
+				$severity = "warning";
+				$message = "Update product gagal. Silakan coba lagi";
+				$content = array();
+			}
+		}else{
+			$severity = "danger";
+			$message = "Tidak ada data dikirim ke server";
+			$content = array();
+		}
+		$response = array(
+			"severity" => $severity,
+			"message" => $message,
+			"content" => $content
+		);
+		echo json_encode($response,JSON_PRETTY_PRINT);
+	}
 	// ------------------------ END OF PRODUCT ------------------------------------
 	
 
@@ -324,7 +473,7 @@ class Api extends CI_Controller {
 
 	public function notification_by_user($id){
 		$data = $this->mod_notification->notification_by_user(array(
-			"id" => $id
+			"id_user" => $id
 		));
 		if(sizeof($data) > 0){
 			$severity = "success";
@@ -563,8 +712,60 @@ class Api extends CI_Controller {
 	public function transaction_update_status($id_transaction,$new_status){
 		if($id_transaction != null && $new_status != null){
 			$transaction_update = $this->mod_transaction->transaction_update_status($id_transaction,array(
-				"status" => $new_status
+				"status" => $new_status,
+				"datetime" => date("Y-m-d H:i:s")
 			));
+
+			//-------------------------------------------------------------
+			$recent_upt = $this->mod_transaction->transaction(array(
+				"id" => $id_transaction,
+				"status" => $new_status 
+			));
+			
+			if(sizeof($recent_upt) > 0){
+				$shop = $this->mod_shop->shop_detail(array("id" => $recent_upt[0]->id_shop));
+				$user_buyer = $this->mod_user->user_detail(array("id" => $recent_upt[0]->id_user));
+				$user = $this->mod_user->user_detail(array("id" => $shop[0]->id_user));
+				$products = $this->mod_transaction->transaction_detail_list($recent_upt[0]->id);
+				$recent_upt[0]->shop = $shop[0];
+				$recent_upt[0]->buyer = $user_buyer[0];
+				$recent_upt[0]->shop->user = $user[0];
+				$recent_upt[0]->product = $products;
+			
+				//untuk pembeli
+				$this->mod_notification->notification_insert(
+					array(
+						"id_user" => $user_buyer[0]->id,
+						"title" => "Transaksi pembelian ",
+						"message" => "Status transaksi anda berubah menjadi " . $new_status,
+						"datetime" => date("Y-m-d H:i:s")
+					)
+				);
+
+				//untuk penjual
+				$this->mod_notification->notification_insert(
+					array(
+						"id_user" => $user[0]->id,
+						"title" => "Transaksi penjualan ",
+						"message" => "Status transaksi anda berubah menjadi " . $new_status,
+						"datetime" => date("Y-m-d H:i:s")
+					)
+				);
+			
+				
+			}
+			//-------------------------------------------------------------
+			//
+			// $notification_insert = $this->mod_notification->notification_insert(
+			// 	array(
+			// 		"id_user" => $id_user,
+			// 		"title" => "Transaksi pembelian ",
+			// 		"message" => "Anda baru saja menambahkan produk ke keranjang",
+			// 		"datetime" => date("Y-m-d H:i:s")
+			// 	)
+			// );
+
+			//
 			if($transaction_update > 0){
 				$severity = "success";
 				$message = "Update status transaksi berhasil";
