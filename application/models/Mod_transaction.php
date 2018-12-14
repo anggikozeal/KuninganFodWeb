@@ -64,9 +64,30 @@ class Mod_transaction extends CI_Model {
         return $query->result();
     }
 
-
     function transaction_history_insert($data){
         $this->db->insert('transaction_history',$data);
         return $this->db->affected_rows();
     }
+
+    function transaction_history_list($id_shop){
+        $query = $this->db->query(
+            "SELECT 
+                transaction.id, 
+                transaction.id_shop, 
+                transaction.status, 
+                transaction_history.total, 
+                transaction_history.datetime  
+            from 
+                transaction  
+            inner join 
+                transaction_history 
+            on 
+                transaction.id = transaction_history.id_transaction 
+            where 
+                transaction.id_shop = '" . $id_shop . "' and transaction.status='ON_FINISH'");
+    return $query->result();
+
+    }
+
+    
 }
