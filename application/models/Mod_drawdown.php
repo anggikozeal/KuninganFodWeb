@@ -16,7 +16,6 @@ class Mod_drawdown extends CI_Model {
         return $query->result();
     }
 
-
     function drawdown_detail($id){
         $this->db->select("*");
         $this->db->from("drawdown");
@@ -33,5 +32,31 @@ class Mod_drawdown extends CI_Model {
         $query = $this->db->get();
         return $query->result();
     }
+
+    function drawdown_finish_list(){
+        $this->db->select("*");
+        $this->db->from("drawdown");
+        $this->db->where("status='ON_APPROVE'");
+        $this->db->order_by("id","desc");
+        $query = $this->db->get();
+        return $query->result();
+    }
+
+    function drawdown_request_by_shop($id_shop){
+        $this->db->select("*");
+        $this->db->from("drawdown");
+        $this->db->where("id_shop='" . $id_shop . "'");
+        $this->db->order_by("id","desc");
+        $this->db->limit(15);
+        $query = $this->db->get();
+        return $query->result();
+    }
+
+    function drawdown_update($id,$data){
+        $this->db->where('id', $id);
+        $this->db->update('drawdown', $data);  
+        return $this->db->affected_rows();
+    }
+
 
 }

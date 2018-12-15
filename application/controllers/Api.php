@@ -12,6 +12,7 @@ class Api extends CI_Controller {
 		$this->load->model('mod_notification');
 		$this->load->model('mod_review');
 		$this->load->model('mod_drawdown');
+		$this->load->model('mod_admin');
 		header('Content-type:JSON');
 	}
 
@@ -1018,6 +1019,90 @@ class Api extends CI_Controller {
 	// ------------------------END OF REVIEW ------------------------------------
 	
 	//------------------------DRAWDOWN ------------------------------------
+	public function drawdown_insert(){
+		if($this->input->post('id_shop') == null && 
+		$this->input->post('total') == null){
+			$draw_req = file_get_contents('php://input');
+			$json = json_decode($draw_req);
+			if($json == null){
+				$severity = "warning";
+				$message = "Tidak ada data dikirim ke server";
+				$content = array();
+				$id_shop = null;
+				$total = null;
+			}else{
+				$id_shop = $json->id_shop;
+				$total = $json->total;
+			}
+		}else{
+			$id_shop = $this->input->post('id_shop');
+			$total = $this->input->post('total');
+		}
+
+		if($id_shop != null && $total != null){
+			$drawdown_insert = $this->mod_drawdown->drawdown_insert(
+				array(
+					"id_shop" => $id_shop,
+					"total" => $total,
+					"status" => "ON_REQUEST",
+					"datetime_request" => date("Y-m-d H:i:s"),
+					"datetime_appove" => date("Y-m-d H:i:s")
+				)
+			);
+			if($drawdown_insert > 0){
+				$severity = "success";
+				$message = "Request pencairan berhasil dikirim";
+				$content = array();
+			}else{
+				$severity = "warning";
+				$message = "Request pencairan gagal dikirim. Silakan coba lagi";
+				$content = array();
+			}
+		}else{
+			$severity = "danger";
+			$message = "Tidak ada data dikirim ke server";
+			$content = array();
+		}
+		$response = array(
+			"severity" => $severity,
+			"message" => $message,
+			"content" => $content
+		);
+		echo json_encode($response,JSON_PRETTY_PRINT);
+	}
+
+	function drawdown_finish_list(){
+		$data = $this->mod_drawdown->drawdown_finish_list();
+		if(sizeof($data) > 0){
+			for($z=0;$z<sizeof($data);$z++){
+				$shop = $this->mod_shop->shop_detail(array("id" => $data[$z]->id_shop));
+				$seller = $this->mod_user->user_detail(array("id" => $shop[0]->id_user));
+				$transac = $this->mod_transaction->transaction( array("id_shop" =>$data[$z]->id_shop,"status"=>"ON_FINISH"));
+				for($zz=0;$zz<sizeof($transac);$zz++){
+					$transac_detail = $this->mod_transaction->transaction_detail_list($transac[$zz]->id);
+					$transac[$zz]->detail = $transac_detail;
+					$transac_history = $this->mod_transaction->transaction_history(array("id_transaction" => $transac[$zz]->id));
+					$transac[$zz]->history = $transac_history[0];
+				}
+				$data[$z]->shop = $shop[0];
+				$data[$z]->seller = $seller[0];
+			}
+			$severity = "success";
+			$message = "Drawdown Data";
+			$content = array("drawdown" => $data,"transaction" => $transac);
+		}else{
+			$severity = "success";
+			$message = "No data";
+			$content = array("drawdown" => array(),"transaction" => array());
+		}
+		$response = array(
+			"severity" => $severity,
+			"message" => $message,
+			"content" => $content
+		);
+		echo json_encode($response,JSON_PRETTY_PRINT);
+	}
+
 	function drawdown_request_list(){
 		$data = $this->mod_drawdown->drawdown_request_list();
 		if(sizeof($data) > 0){
@@ -1028,28 +1113,29 @@ class Api extends CI_Controller {
 				for($zz=0;$zz<sizeof($transac);$zz++){
 					$transac_detail = $this->mod_transaction->transaction_detail_list($transac[$zz]->id);
 					$transac[$zz]->detail = $transac_detail;
+					$transac_history = $this->mod_transaction->transaction_history(array("id_transaction" => $transac[$zz]->id));
+					$transac[$zz]->history = $transac_history[0];
 				}
 				$drawdon_history = $this->mod_drawdown->drawdown(array("id_shop" =>$data[$z]->id_shop, "status"=>"ON_APPROVE"));
+				
 				$total_drawdown = 0;
 				if(sizeof($drawdon_history) > 0){
 					for($zzz=0;$zzz<sizeof($drawdon_history);$zzz++){
-						$total_drawdown = $total_drawdown +$drawdon_history[$zzz]->total;
-					}
-					  
-				}
-				
+						$total_drawdown = $total_drawdown + $drawdon_history[$zzz]->total;
+					}	  
+				}	
 				$data[$z]->shop = $shop[0];
 				$data[$z]->seller = $seller[0];
-				$data[$z]->transaction = $transac;
+				//$data[$z]->transaction = $transac;
 				$data[$z]->recent_drawdown = $total_drawdown;
 			}
 			$severity = "success";
-			$message = "Review";
-			$content = array("drawdown" => $data);
+			$message = "Drawdown Data";
+			$content = array("drawdown" => $data,"transaction" => $transac);
 		}else{
 			$severity = "success";
 			$message = "No data";
-			$content = array("drawdown" => array());
+			$content = array("drawdown" => array(),"transaction" => array());
 		}
 		$response = array(
 			"severity" => $severity,
@@ -1058,5 +1144,145 @@ class Api extends CI_Controller {
 		);
 		echo json_encode($response,JSON_PRETTY_PRINT);
 	}
+
+	function drawdown_request_by_shop($id_shop){
+		$data = $this->mod_drawdown->drawdown_request_by_shop($id_shop);
+		if(sizeof($data) > 0){
+			for($z=0;$z<sizeof($data);$z++){
+				$shop = $this->mod_shop->shop_detail(array("id" => $data[$z]->id_shop));
+				$seller = $this->mod_user->user_detail(array("id" => $shop[0]->id_user));
+				$transac = $this->mod_transaction->transaction( array("id_shop" =>$data[$z]->id_shop,"status"=>"ON_FINISH"));
+				for($zz=0;$zz<sizeof($transac);$zz++){
+					$transac_detail = $this->mod_transaction->transaction_detail_list($transac[$zz]->id);
+					$transac[$zz]->detail = $transac_detail;
+					$transac_history = $this->mod_transaction->transaction_history(array("id_transaction" => $transac[$zz]->id));
+					$transac[$zz]->history = $transac_history[0];
+				}
+				$drawdon_history = $this->mod_drawdown->drawdown(array("id_shop" =>$data[$z]->id_shop, "status"=>"ON_APPROVE"));
+				
+				$total_drawdown = 0;
+				if(sizeof($drawdon_history) > 0){
+					for($zzz=0;$zzz<sizeof($drawdon_history);$zzz++){
+						$total_drawdown = $total_drawdown + $drawdon_history[$zzz]->total;
+					}	  
+				}	
+				$data[$z]->shop = $shop[0];
+				$data[$z]->seller = $seller[0];
+				//$data[$z]->transaction = $transac;
+				$data[$z]->recent_drawdown = $total_drawdown;
+			}
+			$severity = "success";
+			$message = "Drawdown Data";
+			$content = array("drawdown" => $data,"transaction" => $transac);
+		}else{
+			$severity = "success";
+			$message = "No data";
+			$content = array("drawdown" => array(),"transaction" => array());
+		}
+		$response = array(
+			"severity" => $severity,
+			"message" => $message,
+			"content" => $content
+		);
+		echo json_encode($response,JSON_PRETTY_PRINT);
+	}
+
+	function drawdown_update($id,$new_status){
+		if($id != null && $new_status !=null){
+			$drawdown_update = $this->mod_drawdown->drawdown_update($id,
+				array(
+					"status" => $new_status,
+					"datetime_appove" => date("Y-m-d H:i:s")
+				)
+			);
+			if($drawdown_update > 0){
+				$severity = "success";
+				$message = "Proses berhasil!";
+				$content = array();
+			}else{
+				$severity = "warning";
+				$message = "Proses gagal!";
+				$content = array();
+			}
+		}else{
+			$severity = "warning";
+			$message = "Tidak ada data dikirim ke server";
+			$content = array();
+		}
+		$response = array(
+			"severity" => $severity,
+			"message" => $message,
+			"content" => $content
+		);
+		echo json_encode($response,JSON_PRETTY_PRINT);
+
+	}
 	//------------------------END OF DRAWDOWN ------------------------------------
+
+
+	//--------------------------------ADMIN-----------------------------
+	function verifikasi_web(){
+        if($this->input->post()!=null){
+            $data = array(
+            "username" => $this->input->post('username'),
+            "password" => md5($this->input->post('password')));
+            $resultcek = $this->get_admin_by_username($data["username"]);
+            if($resultcek==null){
+                $return = array(
+                    "severity" => "danger",
+                    "message" => "Username tidak terdaftar",
+                    "content" => array("admin" => array())
+                );
+            }else{
+                $return = $this->matching($data,$resultcek);
+            } 
+        }else{
+            $return = array(
+                "severity" => "danger",
+				"message" => "Tidak ada data dikirim ke server",
+				"content" => array("admin" => array())
+            );
+        }
+		echo json_encode($return,JSON_PRETTY_PRINT);
+    }
+    
+    function get_admin_by_username($data){
+        return $this->mod_admin->get_admin_by_username($data);
+    }
+    
+    function matching($data,$resultcek){
+        if($data["username"] == $resultcek[0]->username && $data["password"] == $resultcek[0]->password){
+			$severity = "success";
+			$message = "Login Admin berhasil!";
+			$this->buat_session($resultcek);
+        }else{
+            $severity = "warning";
+			$message = "Username dan password tidak sesuai!";
+        }
+        $return = array(
+			"content" => array("admin" =>$resultcek),
+			"severity" => $severity,
+			"message" => $message
+        );
+        return $return;
+    }
+
+    function buat_session($resultcek){
+        $waktu = date("Y-m-d H:i:s");
+		$this->update_login_timestamp($resultcek[0]->id,array("last_login" => $waktu));
+        $data_session = array(
+            "session_appssystem_code"=>"SeCuRe".date("YmdHis")."#".date("YHmids"),
+            "session_appssystem_id"=>$resultcek[0]->id,
+            "session_appssystem_username"=>$resultcek[0]->username,
+            "session_appssystem_last_login"=>$waktu
+		);
+        $this->session->set_userdata($data_session);
+	}
+	
+	function update_login_timestamp($id,$data){
+        $this->mod_admin->update_login_timestamp($id,$data);
+	}
+	
+	//------------------------END OF ADMIN ------------------------------------
+
 }

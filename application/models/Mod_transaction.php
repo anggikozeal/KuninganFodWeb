@@ -85,9 +85,15 @@ class Mod_transaction extends CI_Model {
                 transaction.id = transaction_history.id_transaction 
             where 
                 transaction.id_shop = '" . $id_shop . "' and transaction.status='ON_FINISH'");
-    return $query->result();
-
+        return $query->result();
     }
 
+    function transaction_history($where){
+        $this->db->select("*");
+        $this->db->from("transaction_history");
+        $this->db->where($where);
+        $query = $this->db->get();
+        return $query->result();
+    }
     
 }

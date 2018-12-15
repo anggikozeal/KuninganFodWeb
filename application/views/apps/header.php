@@ -18,7 +18,7 @@
       <a class="navbar-brand col-sm-3 col-md-2 mr-0" href="#">Food Marketplace</a>
       <ul class="navbar-nav px-3">
         <li class="nav-item text-nowrap">
-          <a class="nav-link" href="#">Sign out</a>
+          <a class="nav-link" href="<?php echo site_url('apps/logout/'); ?>">Sign out</a>
         </li>
       </ul>
     </nav>
@@ -31,23 +31,23 @@
               <li class="nav-item">
                 <a class="nav-link <?php if($this->uri->segment(2)==null) echo "active"; ?>" href="<?php echo site_url('apps/'); ?>">
                   <span data-feather="shopping-cart"></span>
-                  Request Pencairan <span class="sr-only">(current)</span>
+                  Request Pencairan 
                 </a>
               </li>
-              <li class="nav-item" <?php if($this->uri->segment(2)!="riwayat") echo "active"; ?>>
-                <a class="nav-link" href="<?php echo site_url('apps/riwayat/'); ?>">
+              <li class="nav-item">
+                <a class="nav-link <?php if($this->uri->segment(2)=="riwayat") echo "active"; ?>" href="<?php echo site_url('apps/riwayat/'); ?>">
                   <span data-feather="bar-chart-2"></span>
                   Riwayat Pencairan
                 </a>
               </li>
-              <li class="nav-item" <?php if($this->uri->segment(2)!="petunjuk") echo "active"; ?>>
-                <a class="nav-link" href="<?php echo site_url('apps/petunjuk/'); ?>">
+              <li class="nav-item">
+                <a class="nav-link <?php if($this->uri->segment(2)=="petunjuk") echo "active"; ?>" href="<?php echo site_url('apps/petunjuk/'); ?>">
                   <span data-feather="layers"></span>
                   Petunjuk Penggunaan
                 </a>
               </li>
-              <li class="nav-item" <?php if($this->uri->segment(2)!="tentang_aplikasi") echo "active"; ?>>
-                <a class="nav-link" href="<?php echo site_url('apps/tentang_aplikasi/'); ?>">
+              <li class="nav-item">
+                <a class="nav-link <?php if($this->uri->segment(2)=="tentang_aplikasi") echo "active"; ?>" href="<?php echo site_url('apps/tentang_aplikasi/'); ?>">
                   <span data-feather="file"></span>
                   Tentang Aplikasi
                 </a>
