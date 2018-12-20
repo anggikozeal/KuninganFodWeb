@@ -16,5 +16,10 @@ class Mod_shop extends CI_Model {
         return $query->result();
     }
 
+    function shop_delete($where){
+        $this->db->where($where);
+        $this->db->delete('shop');
+        return $this->db->affected_rows();
+    }
 
 }

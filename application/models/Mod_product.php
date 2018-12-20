@@ -58,4 +58,10 @@ class Mod_product extends CI_Model {
         return $this->db->affected_rows();
     }
 
+    function product_delete($where){
+        $this->db->where($where);
+        $this->db->delete('product');
+        return $this->db->affected_rows();
+    }
+
 }

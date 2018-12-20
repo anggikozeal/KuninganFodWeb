@@ -27,6 +27,15 @@ class Apps extends CI_Controller {
 			$this->load->view('apps/login',$this->login_danger);
 		}
 	}
+
+	public function user(){
+		if($this->session->userdata("session_appssystem_code")){
+			$this->load->view('apps/header');
+			$this->load->view('apps/body_user');
+		}else{
+			$this->load->view('apps/login',$this->login_danger);
+		}
+	}
 	
 	public function riwayat(){
 		if($this->session->userdata("session_appssystem_code")){

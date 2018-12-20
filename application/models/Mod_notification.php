@@ -26,6 +26,12 @@ class Mod_notification extends CI_Model {
         return $query->result();
     }
 
+    function notification_delete($where){
+        $this->db->where($where);
+        $this->db->delete('notification');
+        return $this->db->affected_rows();
+    }
+
 
 
 }

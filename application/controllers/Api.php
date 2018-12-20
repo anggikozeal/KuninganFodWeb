@@ -168,6 +168,85 @@ class Api extends CI_Controller {
 		);
 		echo json_encode($response,JSON_PRETTY_PRINT);
 	}
+
+	public function user_list(){
+		$data = $this->mod_user->user_list();
+		if(sizeof($data) > 0){
+			for($x=0;$x<sizeof($data);$x++){
+				$shop = $this->mod_shop->shop_detail(array("id_user" => $data[$x]->id));
+				if(sizeof($shop) > 0){
+					$data[$x]->shop = $shop;
+				}else{
+					$data[$x]->shop = array();
+				}
+			}
+			$severity = "success";
+			$message = "Load user berhasil";
+			$content = array("user" => $data);
+		}else{
+			$severity = "warning";
+			$message = "No data";
+			$content = array("user" => array(), );
+		}
+		$response = array(
+			"severity" => $severity,
+			"message" => $message,
+			"content" => $content
+		);
+		echo json_encode($response,JSON_PRETTY_PRINT);
+	}
+
+	public function user_deactive($id){
+		$data = $this->mod_user->user_detail(array(
+			"id" => $id 
+		));
+		if(sizeof($data) > 0){
+			$cek_by_id_user = $this->mod_transaction->transaction_is_open("id_user",$id);
+			$shop = $this->mod_shop->shop_detail(array("id_user" => $data[0]->id));
+			
+			$cek_by_id_shop = array();
+
+			if(sizeof($shop) > 0){
+				$cek_by_id_shop = $this->mod_transaction->transaction_is_open("id_shop",$shop[0]->id);
+			}
+
+			// echo "Cek id " . sizeof($cek_by_id_user) ."<br>";
+			// echo "Cek id " . sizeof($cek_by_id_shop) . "<br>";
+
+			if(sizeof($cek_by_id_user) == 0 && sizeof($cek_by_id_shop) == 0){
+				$user_delete = $this->mod_user->user_delete(array("id"=>$id));
+				$notif_delete = $this->mod_notification->notification_delete(array("id_user"=>$id));
+				if(sizeof($shop) > 0){
+					$shop_delete = $this->mod_shop->shop_delete(array("id"=>$shop[0]->id));
+					$product_delete = $this->mod_product->product_delete(array("id_shop"=>$shop[0]->id));
+					$transaction_delete = $this->mod_transaction->transaction_delete(array("id_shop"=>$shop[0]->id));
+					$drawdown_delete = $this->mod_drawdown->drawdown_delete(array("id_shop"=>$shop[0]->id));
+				}else{
+					$transaction_delete = $this->mod_transaction->transaction_delete(array("id_user"=>$id));
+				}
+
+				if($user_delete > 0){
+					$severity = "success";
+					$message = "User deactived";
+					$content = array();
+				}else{
+					$severity = "warning";
+					$message = "Error process deactive";
+					$content = array();
+				}
+			}else{
+				$severity = "warning";
+				$message = "User masih memiliki transaki dalam proses, proses deactive tidak dapat dilakukan!";
+				$content = array();
+			}
+		}
+		$response = array(
+			"severity" => $severity,
+			"message" => $message,
+			"content" => $content
+		);
+		echo json_encode($response,JSON_PRETTY_PRINT);
+	}
 	// ------------------------ END OF USER ------------------------------------
 	
 

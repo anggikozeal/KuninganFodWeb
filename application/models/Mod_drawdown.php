@@ -58,5 +58,9 @@ class Mod_drawdown extends CI_Model {
         return $this->db->affected_rows();
     }
 
-
+    function drawdown_delete($where){
+        $this->db->where($where);
+        $this->db->delete('drawdown');
+        return $this->db->affected_rows();
+    }
 }

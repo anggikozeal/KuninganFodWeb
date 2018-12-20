@@ -95,5 +95,20 @@ class Mod_transaction extends CI_Model {
         $query = $this->db->get();
         return $query->result();
     }
+
+    function transaction_delete($where){
+        $this->db->where($where);
+        $this->db->delete('transaction');
+        return $this->db->affected_rows();
+    }
+
+    function transaction_is_open($key,$val){
+        $this->db->select("*");
+        $this->db->from("transaction");
+        $this->db->where("status <> 'ON_FINISH' and " . $key . " = '" . $val . "'");
+        $query = $this->db->get();
+        return $query->result();
+    }
+
     
 }
