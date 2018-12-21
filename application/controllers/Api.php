@@ -1224,6 +1224,48 @@ class Api extends CI_Controller {
 		echo json_encode($response,JSON_PRETTY_PRINT);
 	}
 
+	// function drawdown_request_by_shop($id_shop){
+	// 	$data = $this->mod_drawdown->drawdown_request_by_shop($id_shop);
+	// 	if(sizeof($data) > 0){
+	// 		for($z=0;$z<sizeof($data);$z++){
+	// 			$shop = $this->mod_shop->shop_detail(array("id" => $data[$z]->id_shop));
+	// 			$seller = $this->mod_user->user_detail(array("id" => $shop[0]->id_user));
+	// 			$transac = $this->mod_transaction->transaction( array("id_shop" =>$data[$z]->id_shop,"status"=>"ON_FINISH"));
+	// 			for($zz=0;$zz<sizeof($transac);$zz++){
+	// 				$transac_detail = $this->mod_transaction->transaction_detail_list($transac[$zz]->id);
+	// 				$transac[$zz]->detail = $transac_detail;
+	// 				$transac_history = $this->mod_transaction->transaction_history(array("id_transaction" => $transac[$zz]->id));
+	// 				$transac[$zz]->history = $transac_history[0];
+	// 			}
+	// 			$drawdon_history = $this->mod_drawdown->drawdown(array("id_shop" =>$data[$z]->id_shop, "status"=>"ON_APPROVE"));
+				
+	// 			$total_drawdown = 0;
+	// 			if(sizeof($drawdon_history) > 0){
+	// 				for($zzz=0;$zzz<sizeof($drawdon_history);$zzz++){
+	// 					$total_drawdown = $total_drawdown + $drawdon_history[$zzz]->total;
+	// 				}	  
+	// 			}	
+	// 			$data[$z]->shop = $shop[0];
+	// 			$data[$z]->seller = $seller[0];
+	// 			//$data[$z]->transaction = $transac;
+	// 			$data[$z]->recent_drawdown = $total_drawdown;
+	// 		}
+	// 		$severity = "success";
+	// 		$message = "Drawdown Data";
+	// 		$content = array("drawdown" => $data,"transaction" => $transac);
+	// 	}else{
+	// 		$severity = "success";
+	// 		$message = "No data";
+	// 		$content = array("drawdown" => array(),"transaction" => array());
+	// 	}
+	// 	$response = array(
+	// 		"severity" => $severity,
+	// 		"message" => $message,
+	// 		"content" => $content
+	// 	);
+	// 	echo json_encode($response,JSON_PRETTY_PRINT);
+	// }
+
 	function drawdown_request_by_shop($id_shop){
 		$data = $this->mod_drawdown->drawdown_request_by_shop($id_shop);
 		if(sizeof($data) > 0){
@@ -1244,7 +1286,7 @@ class Api extends CI_Controller {
 					for($zzz=0;$zzz<sizeof($drawdon_history);$zzz++){
 						$total_drawdown = $total_drawdown + $drawdon_history[$zzz]->total;
 					}	  
-				}	
+				}
 				$data[$z]->shop = $shop[0];
 				$data[$z]->seller = $seller[0];
 				//$data[$z]->transaction = $transac;
@@ -1254,9 +1296,16 @@ class Api extends CI_Controller {
 			$message = "Drawdown Data";
 			$content = array("drawdown" => $data,"transaction" => $transac);
 		}else{
+			$transac = $this->mod_transaction->transaction( array("id_shop" =>$id_shop,"status"=>"ON_FINISH"));
+			for($zz=0;$zz<sizeof($transac);$zz++){
+				$transac_detail = $this->mod_transaction->transaction_detail_list($transac[$zz]->id);
+				$transac[$zz]->detail = $transac_detail;
+				$transac_history = $this->mod_transaction->transaction_history(array("id_transaction" => $transac[$zz]->id));
+				$transac[$zz]->history = $transac_history[0];
+			}
 			$severity = "success";
-			$message = "No data";
-			$content = array("drawdown" => array(),"transaction" => array());
+			$message = "Drawdown Data";
+			$content = array("drawdown" => array(),"transaction" => $transac);
 		}
 		$response = array(
 			"severity" => $severity,
